@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import Callable, Tuple
 
 from PIL.Image import Image, Resampling
-from rich.segment import Segment
+from rich.segment import Segment, ControlType
 from rich.style import Style
+
+from chafa import TermDb, Canvas, CanvasConfig, PixelType, PixelMode, CanvasMode
 
 RGBA = Tuple[int, int, int, int]
 GetPixel = Callable[[Tuple[int, int]], RGBA]
@@ -147,3 +149,68 @@ class FullcellRenderer(Renderer):
             else self.null_style
         )
         return Segment("  ", style)
+
+
+class ChafaRenderer(Renderer):
+    def __init__(
+        self,
+        *,
+        default_color: str | None = None,
+        canvas_mode: CanvasMode = None,
+        pixel_mode: PixelMode = None,
+    ) -> None:
+        self.canvas_mode = canvas_mode
+        self.pixel_mode = pixel_mode
+        super().__init__(default_color=default_color)
+        
+    def render(self, image: Image, resize: Tuple[int] | None) -> list[Segment]:
+        # Init database and get terminal info
+        term_db = TermDb()
+        term_info = term_db.detect()
+
+        # Get terminal capabilities
+        capabilities = term_info.detect_capabilities()
+        
+        # Init canvas config
+        config = CanvasConfig()
+
+        # Set canvas height and width
+        config.height = resize[1] if resize else image.height
+        config.width = resize[0] if resize else image.width
+        
+        # Set modes
+        config.canvas_mode = self.canvas_mode or capabilities.canvas_mode
+        config.pixel_mode = self.pixel_mode or capabilities.pixel_mode
+        
+        width = image.width
+        height = image.height
+        bands = len(image.getbands())
+        
+        # Put image into correct format
+        pixels = image.tobytes()
+        # Calculate the canvas geometry
+        if not capabilities.pixel_mode == PixelMode.CHAFA_PIXEL_MODE_SIXELS:
+            config.calc_canvas_geometry(
+                width,
+                height,
+                11/24
+                )
+
+        # Init the canvas
+        canvas = Canvas(config)
+
+        # Draw to canvas
+        canvas.draw_all_pixels(
+            PixelType.CHAFA_PIXEL_RGB8,
+            pixels,
+            width,
+            height,
+            width * bands
+        )
+        
+        rows = []
+        for line in canvas.print(fallback=True).splitlines():
+            rows.append(Segment(line.decode(), control=(ControlType.HIDE_CURSOR, )))
+            rows.append(Segment("\n", self.null_style))
+        
+        return rows

@@ -1,13 +1,15 @@
 from pathlib import Path
 
 import pytest
+
 from rich.align import Align
 from rich.console import Console
 from rich.segment import Segment
 from rich.style import Style
 from syrupy.extensions.image import SVGImageSnapshotExtension
+from chafa import PixelMode
 
-from rich_pixels import Pixels, FullcellRenderer
+from rich_pixels import Pixels, FullcellRenderer, ChafaRenderer
 
 SAMPLE_DATA_DIR = Path(__file__).parent / ".sample_data/"
 
@@ -56,3 +58,11 @@ def test_png_image_path_with_halfpixels(svg_snapshot):
     console.print(pixels)
     svg = console.export_svg()
     assert svg == svg_snapshot
+
+def test_chafa_image():
+    pixels = Pixels.from_image_path(
+        SAMPLE_DATA_DIR / "images/clock.jpg",
+        resize=(50, 0),
+        renderer=ChafaRenderer(pixel_mode=PixelMode.CHAFA_PIXEL_MODE_SYMBOLS),
+    )
+    assert len(pixels._segments.segments) == 2

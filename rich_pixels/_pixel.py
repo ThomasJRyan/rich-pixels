@@ -28,6 +28,8 @@ class Pixels:
         Args:
             image: The PIL Image
             resize: A tuple of (width, height) to resize the image to.
+                    Setting either the width or height to 0 will automatically
+                    calculate the value, effectively scaling the image as desired
             renderer: The renderer to use. If None, the default half-cell renderer will
                 be used.
         """
@@ -46,6 +48,8 @@ class Pixels:
         Args:
             path: The path to the image file.
             resize: A tuple of (width, height) to resize the image to.
+                    Setting either the width or height to 0 will automatically
+                    calculate the value, effectively scaling the image as desired
             renderer: The renderer to use. If None, the default half-cell renderer will
                 be used.
         """
@@ -60,6 +64,16 @@ class Pixels:
         resize: Optional[Tuple[int, int]] = None,
         renderer: Renderer | None = None,
     ) -> list[Segment]:
+        # If a resize value has been passed, see if we need to
+        # calculate the height or width
+        if resize:
+            new_width, new_height = resize
+            # Calculate new width
+            if new_width == 0:
+                resize = (new_height * image.width / image.height, new_height)
+            # Calculate new height
+            elif new_height == 0:
+                resize = (new_width, new_width * image.height / image.width)
         if renderer is None:
             renderer = HalfcellRenderer()
         return renderer.render(image, resize)
