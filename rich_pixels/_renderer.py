@@ -179,8 +179,10 @@ class ChafaRenderer(Renderer):
         config.width = resize[0] if resize else image.width
         
         # Set modes
-        config.canvas_mode = self.canvas_mode or capabilities.canvas_mode
-        config.pixel_mode = self.pixel_mode or capabilities.pixel_mode
+        config.canvas_mode = self.canvas_mode if self.canvas_mode is not None \
+            else capabilities.canvas_mode
+        config.pixel_mode = self.pixel_mode if self.pixel_mode is not None \
+            else capabilities.pixel_mode
         
         width = image.width
         height = image.height
@@ -189,7 +191,7 @@ class ChafaRenderer(Renderer):
         # Put image into correct format
         pixels = image.tobytes()
         # Calculate the canvas geometry
-        if not capabilities.pixel_mode == PixelMode.CHAFA_PIXEL_MODE_SIXELS:
+        if not config.pixel_mode == PixelMode.CHAFA_PIXEL_MODE_SIXELS:
             config.calc_canvas_geometry(
                 width,
                 height,
